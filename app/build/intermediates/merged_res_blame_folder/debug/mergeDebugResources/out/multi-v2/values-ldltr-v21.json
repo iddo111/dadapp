@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.family.guardian.app-mergeDebugResources-29:/values-ldltr-v21/values-ldltr-v21.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\iddo1\\.gradle\\caches\\8.9\\transforms\\baaa2cf434354f3fbad9a630a978cb88\\transformed\\appcompat-1.7.0\\res\\values-ldltr-v21\\values-ldltr-v21.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "112",
+                        "endOffsets": "163"
+                    }
+                }
+            ]
+        }
+    ]
+}

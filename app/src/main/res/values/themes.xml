@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Guardian" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">#E88C00</item>
+        <item name="colorPrimaryDark">#C77800</item>
+        <item name="colorAccent">#E88C00</item>
+        <item name="android:windowBackground">#FFF8F0</item>
+        <item name="android:statusBarColor">#FFF8F0</item>
+        <item name="android:navigationBarColor">#FFF8F0</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

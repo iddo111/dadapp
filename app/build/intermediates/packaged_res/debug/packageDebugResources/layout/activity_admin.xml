@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFF8F0">
+
+    <LinearLayout
+        android:id="@+id/layout_admin_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:visibility="invisible">
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="הגדרות מנהל"
+            android:textSize="24sp" android:textStyle="bold"
+            android:textColor="#2D1A0A" android:layout_marginBottom="28dp"
+            android:gravity="end"/>
+
+        <!-- SOS Contact -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="איש קשר למצוקה"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+        <TextView android:id="@+id/tv_sos_contact_display"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="לא נבחר"
+            android:textSize="18sp" android:textColor="#2D1A0A"
+            android:background="#F5EDE0" android:padding="14dp"
+            android:gravity="end" android:layout_marginBottom="8dp"/>
+        <Button android:id="@+id/btn_pick_contact"
+            android:layout_width="match_parent" android:layout_height="52dp"
+            android:text="בחר מאנשי קשר"
+            android:textSize="16sp" android:textColor="#FFFFFF"
+            android:backgroundTint="#E88C00"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Touch hold duration -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="משך לחיצה לפתיחת אפליקציה"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+        <TextView android:id="@+id/tv_hold_duration"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="16sp" android:textColor="#E88C00"
+            android:gravity="end" android:layout_marginBottom="4dp"/>
+        <SeekBar android:id="@+id/sb_hold_duration"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- App Whitelist Picker -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="אפליקציות מורשות"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+        <TextView android:id="@+id/tv_whitelist_count"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="16sp" android:textColor="#2D1A0A"
+            android:gravity="end" android:layout_marginBottom="8dp"/>
+        <Button android:id="@+id/btn_pick_apps"
+            android:layout_width="match_parent" android:layout_height="52dp"
+            android:text="בחר אפליקציות"
+            android:textSize="16sp" android:textColor="#FFFFFF"
+            android:backgroundTint="#E88C00"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Blacklist -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="רשימה שחורה (הסרה אוטומטית)"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+        <EditText android:id="@+id/et_blacklist"
+            android:layout_width="match_parent" android:layout_height="100dp"
+            android:gravity="top|end" android:textColor="#2D1A0A"
+            android:background="#F5EDE0" android:textSize="12sp"
+            android:inputType="textMultiLine" android:padding="12dp"
+            android:hint="com.example.scam,com.junk.app"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Trusted Installer -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Trusted installer package"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+        <EditText android:id="@+id/et_trusted_installer"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#2D1A0A" android:background="#F5EDE0"
+            android:textSize="14sp" android:padding="12dp"
+            android:hint="e.g. com.android.shell"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Blue light filter -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="סינון אור כחול"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+        <TextView android:id="@+id/tv_blue_light"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="16sp" android:textColor="#E88C00"
+            android:gravity="end" android:layout_marginBottom="4dp"/>
+        <SeekBar android:id="@+id/sb_blue_light"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Admin PIN -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="קוד גישה"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+        <EditText android:id="@+id/et_new_pin"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:inputType="numberPassword" android:textColor="#2D1A0A"
+            android:background="#F5EDE0" android:textSize="20sp"
+            android:padding="12dp" android:gravity="end"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Buttons -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/btn_cancel_admin"
+                android:layout_width="0dp" android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="ביטול"
+                android:backgroundTint="#E8DDD0" android:textColor="#6B5B4F"
+                android:layout_marginEnd="8dp"/>
+            <Button android:id="@+id/btn_save_admin"
+                android:layout_width="0dp" android:layout_height="56dp"
+                android:layout_weight="2"
+                android:text="שמור הגדרות"
+                android:textStyle="bold" android:backgroundTint="#E88C00"
+                android:textColor="#FFFFFF"/>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
