@@ -18,22 +18,40 @@
             android:textColor="#2D1A0A" android:layout_marginBottom="28dp"
             android:gravity="end"/>
 
-        <!-- SOS Contact -->
+        <!-- SOS Contacts (multiple, up to 5) -->
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="איש קשר למצוקה"
+            android:text="אנשי קשר למצוקה (עד 5)"
             android:textSize="14sp" android:textColor="#6B5B4F"
             android:layout_marginBottom="4dp" android:gravity="end"/>
-        <TextView android:id="@+id/tv_sos_contact_display"
+
+        <LinearLayout android:id="@+id/layout_sos_contacts_list"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="לא נבחר"
-            android:textSize="18sp" android:textColor="#2D1A0A"
-            android:background="#F5EDE0" android:padding="14dp"
-            android:gravity="end" android:layout_marginBottom="8dp"/>
-        <Button android:id="@+id/btn_pick_contact"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp"/>
+
+        <Button android:id="@+id/btn_add_sos_contact"
             android:layout_width="match_parent" android:layout_height="52dp"
-            android:text="בחר מאנשי קשר"
+            android:text="+ הוסף איש קשר למצוקה"
             android:textSize="16sp" android:textColor="#FFFFFF"
-            android:backgroundTint="#E88C00"
+            android:backgroundTint="#CC2200"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Important Contacts (up to 10) -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="אנשי קשר חשובים (עד 10)"
+            android:textSize="14sp" android:textColor="#6B5B4F"
+            android:layout_marginBottom="4dp" android:gravity="end"/>
+
+        <LinearLayout android:id="@+id/layout_important_contacts_list"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp"/>
+
+        <Button android:id="@+id/btn_add_important_contact"
+            android:layout_width="match_parent" android:layout_height="52dp"
+            android:text="+ הוסף איש קשר חשוב"
+            android:textSize="16sp" android:textColor="#FFFFFF"
+            android:backgroundTint="#1E88E5"
             android:layout_marginBottom="24dp"/>
 
         <!-- Touch hold duration -->

@@ -15,6 +15,7 @@ import androidx.core.app.ActivityCompat
 import com.family.guardian.GuardianApp
 import com.family.guardian.R
 import com.family.guardian.util.CameraHelper
+import org.json.JSONArray
 
 class SosActivity : AppCompatActivity() {
 
@@ -63,25 +64,25 @@ class SosActivity : AppCompatActivity() {
         btnSos = findViewById(R.id.btn_sos_confirm)
         btnCancel = findViewById(R.id.btn_sos_cancel)
 
-        val sosNumber = prefs.getString(GuardianApp.KEY_SOS_NUMBER, "") ?: ""
-        val sosName = prefs.getString(GuardianApp.KEY_SOS_NAME, "") ?: ""
+        val sosContacts = loadSosContacts()
 
-        // Show contact name
+        // Show contact names
         val tvName = findViewById<TextView>(R.id.tv_sos_contact_name)
-        if (sosName.isNotEmpty()) {
-            tvName.text = "מתקשר ל: $sosName"
-        } else if (sosNumber.isNotEmpty()) {
-            tvName.text = "מתקשר ל: $sosNumber"
+        if (sosContacts.isNotEmpty()) {
+            val names = sosContacts.joinToString(", ") { it.first.ifEmpty { it.second } }
+            tvName.text = "מתקשר ל: $names"
+        } else {
+            tvName.text = "לא הוגדרו אנשי קשר למצוקה"
         }
 
         btnSos.setOnClickListener {
-            if (sosNumber.isEmpty()) {
+            if (sosContacts.isEmpty()) {
                 Toast.makeText(this,
                     "מספר חירום לא הוגדר",
                     Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
-            startCountdown(sosNumber)
+            startCountdown(sosContacts)
         }
 
         btnCancel.setOnClickListener {
@@ -89,12 +90,32 @@ class SosActivity : AppCompatActivity() {
             finish()
         }
 
-        if (sosNumber.isNotEmpty()) {
-            startCountdown(sosNumber)
+        if (sosContacts.isNotEmpty()) {
+            startCountdown(sosContacts)
         }
     }
 
-    private fun startCountdown(sosNumber: String) {
+    private fun loadSosContacts(): List<Pair<String, String>> {
+        // Try new JSON format first
+        val json = prefs.getString(GuardianApp.KEY_SOS_CONTACTS, "") ?: ""
+        if (json.isNotEmpty()) {
+            try {
+                val arr = JSONArray(json)
+                val result = mutableListOf<Pair<String, String>>()
+                for (i in 0 until arr.length()) {
+                    val obj = arr.getJSONObject(i)
+                    result.add(Pair(obj.getString("name"), obj.getString("number")))
+                }
+                if (result.isNotEmpty()) return result
+            } catch (_: Exception) {}
+        }
+        // Fallback to old single contact
+        val oldNumber = prefs.getString(GuardianApp.KEY_SOS_NUMBER, "") ?: ""
+        val oldName = prefs.getString(GuardianApp.KEY_SOS_NAME, "") ?: ""
+        return if (oldNumber.isNotEmpty()) listOf(Pair(oldName, oldNumber)) else emptyList()
+    }
+
+    private fun startCountdown(contacts: List<Pair<String, String>>) {
         tvCountdown.visibility = View.VISIBLE
         btnSos.isEnabled = false
         countdownJob?.cancel()
@@ -105,12 +126,12 @@ class SosActivity : AppCompatActivity() {
             }
             override fun onFinish() {
                 tvCountdown.text = "!"
-                executeSos(sosNumber)
+                executeSos(contacts)
             }
         }.start()
     }
 
-    private fun executeSos(number: String) {
+    private fun executeSos(contacts: List<Pair<String, String>>) {
         btnCancel.isEnabled = false
         tvStatus.visibility = View.VISIBLE
 
@@ -131,21 +152,24 @@ class SosActivity : AppCompatActivity() {
             }
 
             runOnUiThread {
-                // 2. Send SMS
-                tvStatus.text = "שולח הודעה..."
-                try {
-                    val sms = SmsManager.getDefault()
-                    val msg = "SOS! " +
-                        "עזרה נדרשת. " +
-                        "הודעה אוטומטית."
-                    sms.sendTextMessage(number, null, msg, null, null)
-                } catch (e: Exception) {
-                    android.util.Log.e("SOS", "SMS failed: ${e.message}")
+                // 2. Send SMS to ALL contacts
+                tvStatus.text = "שולח הודעות..."
+                for ((name, number) in contacts) {
+                    try {
+                        val sms = SmsManager.getDefault()
+                        val msg = "SOS! " +
+                            "עזרה נדרשת. " +
+                            "הודעה אוטומטית."
+                        sms.sendTextMessage(number, null, msg, null, null)
+                    } catch (e: Exception) {
+                        android.util.Log.e("SOS", "SMS failed to $number: ${e.message}")
+                    }
                 }
 
-                // 3. Make the call
+                // 3. Call the FIRST contact (can only call one at a time)
                 tvStatus.text = "מתקשר..."
-                makeCall(number)
+                val firstNumber = contacts.first().second
+                makeCall(firstNumber)
             }
         }.start()
     }

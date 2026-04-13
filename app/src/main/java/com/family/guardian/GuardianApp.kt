@@ -13,6 +13,8 @@ class GuardianApp : Application() {
         const val KEY_BLACKLIST = "app_blacklist"
         const val KEY_SOS_NUMBER = "sos_number"
         const val KEY_SOS_NAME = "sos_name"
+        const val KEY_SOS_CONTACTS = "sos_contacts_json"
+        const val KEY_IMPORTANT_CONTACTS = "important_contacts_json"
         const val KEY_TOUCH_HOLD_MS = "touch_hold_ms"
         const val KEY_SETUP_DONE = "setup_done"
         const val KEY_BLUE_LIGHT = "blue_light_strength"

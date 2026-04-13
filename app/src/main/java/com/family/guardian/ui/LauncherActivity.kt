@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.PixelFormat
 import android.graphics.PorterDuff
 import android.graphics.drawable.GradientDrawable
 import android.hardware.camera2.CameraCharacteristics
@@ -29,14 +28,10 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var tvDate: TextView
     private lateinit var tvBattery: TextView
     private lateinit var btnFlash: Button
-    private lateinit var btnFrontFlash: Button
     private val handler = Handler(Looper.getMainLooper())
 
     // Flashlight state
     private var flashlightOn = false
-    private var frontFlashOn = false
-    private var frontFlashOverlay: View? = null
-    private var frontFlashWm: WindowManager? = null
 
     // Blue light filter overlay
     private var blueLightOverlay: View? = null
@@ -246,42 +241,24 @@ class LauncherActivity : AppCompatActivity() {
             setPadding(dp(12), dp(10), dp(12), dp(10))
         }
 
-        // Flashlight button
+        // Flashlight button - BIGGER with amber/orange background
         btnFlash = Button(this).apply {
-            text = "פנס"
-            textSize = 14f
+            text = "\uD83D\uDD26 פנס"
+            textSize = 24f
             setTextColor(TEXT_DARK)
-            setBackgroundResource(android.R.color.transparent)
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
             val bg = GradientDrawable().apply {
-                setColor(0xFFF5EDE0.toInt())
-                cornerRadius = dp(14).toFloat()
-                setStroke(dp(1), BAR_BORDER)
+                setColor(0xFFFFB300.toInt())  // bright amber
+                cornerRadius = dp(16).toFloat()
+                setStroke(dp(2), 0xFFE88C00.toInt())
             }
             background = bg
-            layoutParams = LinearLayout.LayoutParams(dp(70), dp(56)).apply {
-                marginEnd = dp(6)
+            layoutParams = LinearLayout.LayoutParams(dp(120), dp(80)).apply {
+                marginEnd = dp(8)
             }
             setOnClickListener { toggleFlashlight() }
         }
         bottom.addView(btnFlash)
-
-        // Front flash button
-        btnFrontFlash = Button(this).apply {
-            text = "פנס ++"
-            textSize = 13f
-            setTextColor(TEXT_DARK)
-            val bg = GradientDrawable().apply {
-                setColor(0xFFF5EDE0.toInt())
-                cornerRadius = dp(14).toFloat()
-                setStroke(dp(1), BAR_BORDER)
-            }
-            background = bg
-            layoutParams = LinearLayout.LayoutParams(dp(76), dp(56)).apply {
-                marginEnd = dp(8)
-            }
-            setOnClickListener { toggleFrontFlash() }
-        }
-        bottom.addView(btnFrontFlash)
 
         // SOS button
         val sosBtn = Button(this).apply {
@@ -295,7 +272,7 @@ class LauncherActivity : AppCompatActivity() {
                 setStroke(dp(3), ACCENT_AMBER)
             }
             background = bg
-            layoutParams = LinearLayout.LayoutParams(0, dp(56), 1f).apply {
+            layoutParams = LinearLayout.LayoutParams(0, dp(80), 1f).apply {
                 marginEnd = dp(8)
             }
             setOnClickListener {
@@ -304,13 +281,18 @@ class LauncherActivity : AppCompatActivity() {
         }
         bottom.addView(sosBtn)
 
-        // Admin button (hidden -- 3s long press)
+        // Admin button (gear icon, 3s long press) - LARGER and more visible
         val adminBtn = Button(this).apply {
-            text = "..."
-            textSize = 14f
-            setTextColor(0xFFCCC0B0.toInt())  // very dim
-            setBackgroundColor(BG_WARM)
-            layoutParams = LinearLayout.LayoutParams(dp(48), dp(56))
+            text = "\u2699\uFE0F"
+            textSize = 20f
+            setTextColor(0xFF8B7D6B.toInt())
+            val bg = GradientDrawable().apply {
+                setColor(0xFFF0E6D6.toInt())
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), BAR_BORDER)
+            }
+            background = bg
+            layoutParams = LinearLayout.LayoutParams(dp(64), dp(64))
         }
         var adminRunnable: Runnable? = null
         val adminHandler = Handler(Looper.getMainLooper())
@@ -340,6 +322,21 @@ class LauncherActivity : AppCompatActivity() {
     // ---- App grid ----
     private fun buildAppGrid() {
         grid.removeAllViews()
+
+        // Add Contacts tile first
+        grid.addView(makeSpecialTile("\uD83D\uDC65 אנשי קשר", 0xFF1E88E5.toInt()) {
+            startActivity(Intent(this, ContactsActivity::class.java))
+        })
+
+        // Add Claude tile
+        grid.addView(makeSpecialTile("\uD83E\uDD16 Claude", 0xFFE8734A.toInt()) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://claude.ai")))
+            } catch (_: Exception) {
+                Toast.makeText(this, "Claude AI Assistant - Connected", Toast.LENGTH_LONG).show()
+            }
+        })
+
         val whitelist = (prefs.getString(GuardianApp.KEY_WHITELIST, "") ?: "")
             .split(",").map { it.trim() }.filter { it.isNotEmpty() }
         val holdMs = prefs.getLong(GuardianApp.KEY_TOUCH_HOLD_MS, GuardianApp.DEFAULT_HOLD_MS)
@@ -347,15 +344,48 @@ class LauncherActivity : AppCompatActivity() {
             if (!isInstalled(pkg)) continue
             grid.addView(makeAppTile(pkg, holdMs))
         }
-        if (grid.childCount == 0) {
+        if (grid.childCount == 2) {
+            // Only special tiles, no apps
             grid.addView(TextView(this).apply {
-                text = "לחץ לחיצה ארוכה על ... להגדרות"
+                text = "לחץ לחיצה ארוכה על \u2699\uFE0F להגדרות"
                 textSize = 16f
                 setTextColor(TEXT_SEC)
                 gravity = Gravity.CENTER
                 setPadding(dp(20), dp(60), dp(20), dp(60))
             })
         }
+    }
+
+    private fun makeSpecialTile(label: String, bgColor: Int, onClick: () -> Unit): View {
+        val cell = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(20), dp(8), dp(20))
+            val bg = GradientDrawable().apply {
+                setColor(bgColor)
+                cornerRadius = dp(20).toFloat()
+                setStroke(dp(1), BAR_BORDER)
+            }
+            background = bg
+            elevation = dp(4).toFloat()
+            val spec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+            layoutParams = GridLayout.LayoutParams(spec, spec).apply {
+                width = 0; height = WRAP
+                setMargins(dp(6), dp(6), dp(6), dp(6))
+            }
+        }
+
+        cell.addView(TextView(this).apply {
+            text = label
+            textSize = 20f
+            setTextColor(0xFFFFFFFF.toInt())
+            gravity = Gravity.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            maxLines = 2
+        })
+
+        cell.setOnClickListener { onClick() }
+        return cell
     }
 
     private fun makeAppTile(pkg: String, holdMs: Long): View {
@@ -444,79 +474,18 @@ class LauncherActivity : AppCompatActivity() {
             if (cameraId != null) {
                 flashlightOn = !flashlightOn
                 cm.setTorchMode(cameraId, flashlightOn)
-                btnFlash.text = if (flashlightOn) "פנס ON" else "פנס"
+                btnFlash.text = if (flashlightOn) "\uD83D\uDD26 ON" else "\uD83D\uDD26 פנס"
                 val bg = btnFlash.background as? GradientDrawable
                 if (flashlightOn) {
-                    bg?.setColor(ACCENT_AMBER)
+                    bg?.setColor(0xFFFF8F00.toInt())  // darker amber when ON
                     btnFlash.setTextColor(0xFFFFFFFF.toInt())
                 } else {
-                    bg?.setColor(0xFFF5EDE0.toInt())
+                    bg?.setColor(0xFFFFB300.toInt())  // bright amber
                     btnFlash.setTextColor(TEXT_DARK)
                 }
             }
         } catch (e: Exception) {
             android.util.Log.e("Launcher", "Flashlight error: ${e.message}")
-        }
-    }
-
-    // ---- Front flash (software white screen) ----
-    private fun toggleFrontFlash() {
-        if (frontFlashOn) {
-            // Turn off
-            try {
-                frontFlashOverlay?.let { ov ->
-                    (getSystemService(Context.WINDOW_SERVICE) as WindowManager).removeView(ov)
-                }
-            } catch (_: Exception) {}
-            frontFlashOverlay = null
-            frontFlashOn = false
-            // Restore brightness
-            val lp = window.attributes
-            lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-            window.attributes = lp
-            val bg = btnFrontFlash.background as? GradientDrawable
-            bg?.setColor(0xFFF5EDE0.toInt())
-            btnFrontFlash.setTextColor(TEXT_DARK)
-        } else {
-            // Turn on
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                !Settings.canDrawOverlays(this)) {
-                try {
-                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:$packageName")))
-                } catch (_: Exception) {}
-                return
-            }
-            val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val overlay = View(this).apply {
-                setBackgroundColor(0xFFFFFFFF.toInt())
-                setOnClickListener { toggleFrontFlash() }  // tap to dismiss
-            }
-            val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY
-            val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.MATCH_PARENT,
-                layoutType,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                screenBrightness = 1.0f
-            }
-            wm.addView(overlay, params)
-            frontFlashOverlay = overlay
-            frontFlashOn = true
-            // Also max window brightness
-            val lp = window.attributes
-            lp.screenBrightness = 1.0f
-            window.attributes = lp
-            val bg = btnFrontFlash.background as? GradientDrawable
-            bg?.setColor(ACCENT_AMBER)
-            btnFrontFlash.setTextColor(0xFFFFFFFF.toInt())
         }
     }
 
@@ -569,14 +538,6 @@ class LauncherActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
-        // Clean up front flash if active
-        if (frontFlashOn) {
-            try {
-                frontFlashOverlay?.let {
-                    (getSystemService(Context.WINDOW_SERVICE) as WindowManager).removeView(it)
-                }
-            } catch (_: Exception) {}
-        }
         super.onDestroy()
     }
 }
