@@ -18,6 +18,11 @@ class GuardianApp : Application() {
         const val KEY_TOUCH_HOLD_MS = "touch_hold_ms"
         const val KEY_SETUP_DONE = "setup_done"
         const val KEY_BLUE_LIGHT = "blue_light_strength"
+        const val KEY_FAMILY_CALL_URL = "family_call_url"
+        // Phone number (E.164 or local) the "Family Video Call" tile should
+        // call via WhatsApp. If unset, the launcher falls back to the first
+        // Important Contact, then the SOS number.
+        const val KEY_FAMILY_CALL_PHONE = "family_call_phone"
         const val DEFAULT_PIN = "1234"
         const val DEFAULT_HOLD_MS = 800L
         const val DEFAULT_BLUE_LIGHT = 40

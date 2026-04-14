@@ -10,6 +10,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.*
+import android.provider.ContactsContract
 import android.provider.Settings
 import android.view.*
 import android.widget.*
@@ -58,6 +59,23 @@ class LauncherActivity : AppCompatActivity() {
         "שישי",         // Friday
         "שבת"                // Saturday
     )
+
+    private val hebrewMonths = arrayOf(
+        "ינואר","פברואר","מרץ","אפריל","מאי","יוני",
+        "יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"
+    )
+
+    private fun timeOfDayGreeting(): String {
+        val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        return when (h) {
+            in 5..11  -> "בוקר טוב אבא"
+            in 12..16 -> "צהריים טובים אבא"
+            in 17..20 -> "ערב טוב אבא"
+            else      -> "לילה טוב אבא"
+        }
+    }
+
+    private lateinit var tvGreeting: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -158,43 +176,93 @@ class LauncherActivity : AppCompatActivity() {
     private fun buildLayout(): View {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(BG_WARM)
+            // Cheerful multi-color gradient — sunrise sky
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(
+                    0xFFFFE4B5.toInt(),   // sunny yellow
+                    0xFFFFD8A8.toInt(),   // peach
+                    0xFFFFBF9B.toInt(),   // coral
+                    0xFFFFE0EC.toInt(),   // pink mist
+                    0xFFE0F0FF.toInt()    // sky blue
+                )
+            )
             layoutParams = ViewGroup.LayoutParams(MATCH, MATCH)
         }
 
-        // ---- Top bar: greeting + clock + battery ----
-        val topBar = LinearLayout(this).apply {
+        // ---- Decorative banner: cheerful drawing strip ----
+        root.addView(buildDecorBanner())
+
+        // ---- Top CARD: greeting + clock + battery + date ----
+        val topCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(BG_WARM)
-            setPadding(dp(20), dp(16), dp(20), dp(8))
+            val bg = GradientDrawable().apply {
+                setColor(0xFFFFFFFF.toInt())
+                cornerRadius = dp(24).toFloat()
+                setStroke(dp(1), 0xFFF0E4D0.toInt())
+            }
+            background = bg
+            elevation = dp(6).toFloat()
+            setPadding(dp(22), dp(18), dp(22), dp(18))
+            layoutParams = LinearLayout.LayoutParams(MATCH, WRAP).apply {
+                setMargins(dp(14), dp(16), dp(14), dp(8))
+            }
         }
-        // Greeting
-        topBar.addView(TextView(this).apply {
-            text = "שלום אבא"
+        // Greeting row with heart
+        val greetingRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(MATCH, WRAP)
+        }
+        greetingRow.addView(TextView(this).apply {
+            text = "❤️"
             textSize = 26f
+            layoutParams = LinearLayout.LayoutParams(WRAP, WRAP)
+        })
+        tvGreeting = TextView(this).apply {
+            text = timeOfDayGreeting()
+            textSize = 30f
             setTextColor(TEXT_DARK)
             gravity = Gravity.END
             typeface = android.graphics.Typeface.DEFAULT_BOLD
-        })
-        // Clock row
+            layoutParams = LinearLayout.LayoutParams(0, WRAP, 1f)
+        }
+        greetingRow.addView(tvGreeting)
+        topCard.addView(greetingRow)
+
+        // Clock row: big time on right, battery chip on left
         val clockRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(4), 0, 0)
+            setPadding(0, dp(6), 0, 0)
         }
         tvBattery = TextView(this).apply {
-            textSize = 16f
+            textSize = 15f
             setTextColor(TEXT_SEC)
-            layoutParams = LinearLayout.LayoutParams(0, WRAP, 1f)
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            val chipBg = GradientDrawable().apply {
+                setColor(0xFFF6EEDD.toInt())
+                cornerRadius = dp(14).toFloat()
+            }
+            background = chipBg
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+            layoutParams = LinearLayout.LayoutParams(WRAP, WRAP)
         }
         tvTime = TextView(this).apply {
-            textSize = 52f
+            textSize = 58f
             setTextColor(TEXT_DARK)
             typeface = android.graphics.Typeface.MONOSPACE
+            setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), 0x22000000)
+            maxLines = 1
+            isSingleLine = true
+            includeFontPadding = false
+            layoutParams = LinearLayout.LayoutParams(0, WRAP, 1f)
+            gravity = Gravity.END
         }
         clockRow.addView(tvBattery)
         clockRow.addView(tvTime)
-        topBar.addView(clockRow)
+        topCard.addView(clockRow)
+
         // Date
         tvDate = TextView(this).apply {
             textSize = 18f
@@ -202,21 +270,14 @@ class LauncherActivity : AppCompatActivity() {
             gravity = Gravity.END
             layoutParams = LinearLayout.LayoutParams(MATCH, WRAP)
         }
-        topBar.addView(tvDate)
-        root.addView(topBar)
-
-        // ---- Divider ----
-        root.addView(View(this).apply {
-            setBackgroundColor(BAR_BORDER)
-            layoutParams = LinearLayout.LayoutParams(MATCH, dp(1)).apply {
-                setMargins(dp(16), dp(4), dp(16), dp(4))
-            }
-        })
+        topCard.addView(tvDate)
+        root.addView(topCard)
 
         // ---- App grid ----
         val scroll = ScrollView(this).apply {
             layoutParams = LinearLayout.LayoutParams(MATCH, 0, 1f)
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            setPadding(dp(8), dp(4), dp(8), dp(8))
+            isVerticalScrollBarEnabled = false
         }
         grid = GridLayout(this).apply {
             columnCount = 2
@@ -225,74 +286,102 @@ class LauncherActivity : AppCompatActivity() {
         scroll.addView(grid)
         root.addView(scroll)
 
-        // ---- Bottom bar ----
+        // ---- Bottom CARD ----
         val bottomOuter = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(BG_WARM)
+            val bg = GradientDrawable().apply {
+                setColor(0xFFFFFFFF.toInt())
+                cornerRadius = dp(24).toFloat()
+                setStroke(dp(1), 0xFFF0E4D0.toInt())
+            }
+            background = bg
+            elevation = dp(8).toFloat()
+            layoutParams = LinearLayout.LayoutParams(MATCH, WRAP).apply {
+                setMargins(dp(14), dp(4), dp(14), dp(16))
+            }
         }
-        // Border on top
-        bottomOuter.addView(View(this).apply {
-            setBackgroundColor(BAR_BORDER)
-            layoutParams = LinearLayout.LayoutParams(MATCH, dp(1))
-        })
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+            setPadding(dp(14), dp(14), dp(14), dp(14))
         }
 
-        // Flashlight button - BIGGER with amber/orange background
+        // Flashlight button - warm amber gradient, rounded, big
         btnFlash = Button(this).apply {
-            text = "\uD83D\uDD26 פנס"
-            textSize = 24f
+            text = "\uD83D\uDD26\nפנס"
+            textSize = 18f
             setTextColor(TEXT_DARK)
             typeface = android.graphics.Typeface.DEFAULT_BOLD
-            val bg = GradientDrawable().apply {
-                setColor(0xFFFFB300.toInt())  // bright amber
-                cornerRadius = dp(16).toFloat()
+            val bg = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(0xFFFFC947.toInt(), 0xFFFFA726.toInt())
+            ).apply {
+                cornerRadius = dp(20).toFloat()
                 setStroke(dp(2), 0xFFE88C00.toInt())
             }
             background = bg
-            layoutParams = LinearLayout.LayoutParams(dp(120), dp(80)).apply {
-                marginEnd = dp(8)
+            elevation = dp(3).toFloat()
+            stateListAnimator = null
+            layoutParams = LinearLayout.LayoutParams(dp(110), dp(88)).apply {
+                marginEnd = dp(10)
             }
             setOnClickListener { toggleFlashlight() }
         }
         bottom.addView(btnFlash)
 
-        // SOS button
+        // SOS button - bold red gradient, larger, attention-grabbing
         val sosBtn = Button(this).apply {
-            text = "SOS"
-            textSize = 22f
+            text = "🆘 SOS"
+            textSize = 26f
             setTextColor(0xFFFFFFFF.toInt())
             typeface = android.graphics.Typeface.DEFAULT_BOLD
-            val bg = GradientDrawable().apply {
-                setColor(SOS_RED)
-                cornerRadius = dp(16).toFloat()
-                setStroke(dp(3), ACCENT_AMBER)
+            val bg = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(0xFFE53935.toInt(), 0xFFB71C1C.toInt())
+            ).apply {
+                cornerRadius = dp(20).toFloat()
+                setStroke(dp(3), 0xFFFFD54F.toInt())
             }
             background = bg
-            layoutParams = LinearLayout.LayoutParams(0, dp(80), 1f).apply {
-                marginEnd = dp(8)
+            elevation = dp(6).toFloat()
+            stateListAnimator = null
+            setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), 0x66000000)
+            layoutParams = LinearLayout.LayoutParams(0, dp(88), 1f).apply {
+                marginEnd = dp(10)
             }
             setOnClickListener {
                 startActivity(Intent(this@LauncherActivity, SosActivity::class.java))
             }
         }
         bottom.addView(sosBtn)
+        // Subtle pulse animation to draw eye to SOS without being annoying
+        sosBtn.animate().scaleX(1.03f).scaleY(1.03f)
+            .setDuration(900).withEndAction(object : Runnable {
+                override fun run() {
+                    sosBtn.animate().scaleX(1.0f).scaleY(1.0f)
+                        .setDuration(900).withEndAction(object : Runnable {
+                            override fun run() {
+                                sosBtn.animate().scaleX(1.03f).scaleY(1.03f)
+                                    .setDuration(900).withEndAction(this).start()
+                            }
+                        }).start()
+                }
+            }).start()
 
-        // Admin button (gear icon, 3s long press) - LARGER and more visible
+        // Admin button (gear icon, 3s long press)
         val adminBtn = Button(this).apply {
             text = "\u2699\uFE0F"
-            textSize = 20f
+            textSize = 22f
             setTextColor(0xFF8B7D6B.toInt())
             val bg = GradientDrawable().apply {
-                setColor(0xFFF0E6D6.toInt())
-                cornerRadius = dp(12).toFloat()
+                setColor(0xFFF6EEDD.toInt())
+                cornerRadius = dp(16).toFloat()
                 setStroke(dp(1), BAR_BORDER)
             }
             background = bg
-            layoutParams = LinearLayout.LayoutParams(dp(64), dp(64))
+            elevation = dp(2).toFloat()
+            stateListAnimator = null
+            layoutParams = LinearLayout.LayoutParams(dp(68), dp(68))
         }
         var adminRunnable: Runnable? = null
         val adminHandler = Handler(Looper.getMainLooper())
@@ -323,13 +412,13 @@ class LauncherActivity : AppCompatActivity() {
     private fun buildAppGrid() {
         grid.removeAllViews()
 
-        // Add Contacts tile first
-        grid.addView(makeSpecialTile("\uD83D\uDC65 אנשי קשר", 0xFF1E88E5.toInt()) {
+        // Add Contacts tile first (cheerful pink)
+        grid.addView(makeSpecialTile("👥 אנשי קשר", 0xFFEC407A.toInt()) {
             startActivity(Intent(this, ContactsActivity::class.java))
         })
 
-        // Add Claude tile
-        grid.addView(makeSpecialTile("\uD83E\uDD16 Claude", 0xFFE8734A.toInt()) {
+        // Add Claude tile (cheerful purple)
+        grid.addView(makeSpecialTile("🤖 Claude", 0xFF8E7CC3.toInt()) {
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://claude.ai")))
             } catch (_: Exception) {
@@ -337,12 +426,30 @@ class LauncherActivity : AppCompatActivity() {
             }
         })
 
+        // Family video-call tile (teal gradient) — tries Meet → WhatsApp → browser
+        grid.addView(makeSpecialTile("📹 שיחת משפחה", 0xFF26A69A.toInt()) {
+            openFamilyVideoCall()
+        })
+
         val whitelist = (prefs.getString(GuardianApp.KEY_WHITELIST, "") ?: "")
             .split(",").map { it.trim() }.filter { it.isNotEmpty() }
         val holdMs = prefs.getLong(GuardianApp.KEY_TOUCH_HOLD_MS, GuardianApp.DEFAULT_HOLD_MS)
+        // Rainbow tile palette
+        val tilePalette = intArrayOf(
+            0xFF66BB6A.toInt(),  // green
+            0xFF42A5F5.toInt(),  // sky blue
+            0xFFFFA726.toInt(),  // orange
+            0xFFAB47BC.toInt(),  // purple
+            0xFF26C6DA.toInt(),  // teal
+            0xFFFFCA28.toInt(),  // amber
+            0xFFEF5350.toInt(),  // coral
+            0xFF78909C.toInt()   // slate
+        )
+        var idx = 0
         for (pkg in whitelist) {
             if (!isInstalled(pkg)) continue
-            grid.addView(makeAppTile(pkg, holdMs))
+            grid.addView(makeAppTile(pkg, holdMs, tilePalette[idx % tilePalette.size]))
+            idx++
         }
         if (grid.childCount == 2) {
             // Only special tiles, no apps
@@ -357,38 +464,309 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun makeSpecialTile(label: String, bgColor: Int, onClick: () -> Unit): View {
+        // Split emoji + label so we can render the emoji huge
+        val parts = label.split(" ", limit = 2)
+        val emojiStr = if (parts.size == 2) parts[0] else ""
+        val labelStr = if (parts.size == 2) parts[1] else label
+
         val cell = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(8), dp(20), dp(8), dp(20))
-            val bg = GradientDrawable().apply {
-                setColor(bgColor)
-                cornerRadius = dp(20).toFloat()
-                setStroke(dp(1), BAR_BORDER)
+            setPadding(dp(8), dp(22), dp(8), dp(22))
+            // soft vertical gradient from base color → slightly darker
+            val darker = darken(bgColor, 0.85f)
+            val bg = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(bgColor, darker)
+            ).apply {
+                cornerRadius = dp(24).toFloat()
             }
             background = bg
-            elevation = dp(4).toFloat()
+            elevation = dp(6).toFloat()
             val spec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
             layoutParams = GridLayout.LayoutParams(spec, spec).apply {
                 width = 0; height = WRAP
-                setMargins(dp(6), dp(6), dp(6), dp(6))
+                setMargins(dp(8), dp(8), dp(8), dp(8))
             }
         }
 
+        if (emojiStr.isNotEmpty()) {
+            cell.addView(TextView(this).apply {
+                text = emojiStr
+                textSize = 44f
+                gravity = Gravity.CENTER
+            })
+        }
         cell.addView(TextView(this).apply {
-            text = label
+            text = labelStr
             textSize = 20f
             setTextColor(0xFFFFFFFF.toInt())
             gravity = Gravity.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             maxLines = 2
+            setPadding(0, dp(6), 0, 0)
         })
 
         cell.setOnClickListener { onClick() }
         return cell
     }
 
-    private fun makeAppTile(pkg: String, holdMs: Long): View {
+    // ---- Family video call (WhatsApp-first) ----
+    // Goal: one tap → actual video call ringing on the family member's phone.
+    // The old implementation just launched WhatsApp's home screen which
+    // required Dad to navigate, find the contact, and tap video — defeating
+    // the whole purpose of the tile. This version resolves a target phone
+    // number, queries ContactsContract for the hidden WhatsApp video-call
+    // data row on that contact, and fires ACTION_VIEW on it — the exact
+    // intent the WhatsApp "Video call" button itself emits.
+    private fun openFamilyVideoCall() {
+        // Priority 1: configured URL (group deep-link or wa.me link)
+        val customUrl = prefs.getString(GuardianApp.KEY_FAMILY_CALL_URL, null)
+        if (!customUrl.isNullOrBlank() && customUrl.startsWith("http", ignoreCase = true)) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(customUrl))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            } catch (_: Exception) {}
+        }
+
+        // Priority 2: direct WhatsApp video call to a configured number
+        val target = resolveFamilyTargetNumber()
+        if (!target.isNullOrBlank()) {
+            if (launchWhatsAppVideoCall(target)) return
+            // Second-best: chat deep link so the user lands on the thread
+            // and the video button is one tap away (better than a cold home).
+            val waMe = "https://wa.me/" + target.filter { it.isDigit() || it == '+' }
+                .removePrefix("+")
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(waMe))
+                    .setPackage("com.whatsapp")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            } catch (_: Exception) {}
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(waMe))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            } catch (_: Exception) {}
+        }
+
+        // Last resort: WhatsApp home, then Business, then toast
+        try {
+            val i = packageManager.getLaunchIntentForPackage("com.whatsapp")
+            if (i != null) {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(i)
+                Toast.makeText(this,
+                    "הוסיפו מספר שיחת משפחה בהגדרות",
+                    Toast.LENGTH_LONG).show()
+                return
+            }
+        } catch (_: Exception) {}
+        try {
+            val i = packageManager.getLaunchIntentForPackage("com.whatsapp.w4b")
+            if (i != null) {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(i)
+                return
+            }
+        } catch (_: Exception) {}
+        Toast.makeText(this, "WhatsApp לא מותקן", Toast.LENGTH_LONG).show()
+    }
+
+    /** Returns the phone number to video-call, or null if none is configured. */
+    private fun resolveFamilyTargetNumber(): String? {
+        // 1) Explicit pref
+        prefs.getString(GuardianApp.KEY_FAMILY_CALL_PHONE, null)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+        // 2) If KEY_FAMILY_CALL_URL holds a raw phone rather than a URL
+        prefs.getString(GuardianApp.KEY_FAMILY_CALL_URL, null)
+            ?.takeIf { it.isNotBlank() && !it.startsWith("http", ignoreCase = true) }
+            ?.let { return it }
+        // 3) First "important" contact — the natural family-call target
+        try {
+            val json = prefs.getString(GuardianApp.KEY_IMPORTANT_CONTACTS, "") ?: ""
+            if (json.isNotEmpty()) {
+                val arr = org.json.JSONArray(json)
+                if (arr.length() > 0) {
+                    return arr.getJSONObject(0).optString("number").takeIf { it.isNotBlank() }
+                }
+            }
+        } catch (_: Exception) {}
+        // 4) SOS number as final fallback
+        return prefs.getString(GuardianApp.KEY_SOS_NUMBER, null)
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Tries to launch WhatsApp's native video-call activity for [phone] by
+     * finding the hidden contact data row WhatsApp installs under its
+     * special MIMETYPE. Returns true on successful startActivity.
+     *
+     * This is the same mechanism WhatsApp's own contact detail screen uses
+     * when you tap the video icon — an ACTION_VIEW on a ContactsContract.Data
+     * row whose MIMETYPE is "vnd.android.cursor.item/vnd.com.whatsapp.video.call".
+     */
+    private fun launchWhatsAppVideoCall(phone: String): Boolean {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
+            != PackageManager.PERMISSION_GRANTED) return false
+
+        val mimeTypes = listOf(
+            "vnd.android.cursor.item/vnd.com.whatsapp.video.call",
+            "vnd.android.cursor.item/vnd.com.whatsapp.w4b.video.call"
+        )
+
+        val dataId = findWhatsAppDataRowId(phone, mimeTypes) ?: return false
+
+        for (mime in mimeTypes) {
+            try {
+                val uri = android.content.ContentUris.withAppendedId(
+                    ContactsContract.Data.CONTENT_URI, dataId)
+                startActivity(Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(uri, mime)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return true
+            } catch (_: Exception) { /* try next mime */ }
+        }
+        return false
+    }
+
+    /**
+     * Walks ContactsContract.Data looking for the WhatsApp video-call row
+     * belonging to the contact whose phone matches [phone]. Matching is done
+     * via PhoneNumberUtils.compare so +972-55-1234567 matches 0551234567.
+     */
+    private fun findWhatsAppDataRowId(
+        phone: String,
+        mimeTypes: List<String>,
+    ): Long? {
+        return try {
+            // Step 1: find contact-ids matching the phone number.
+            val phoneUri = Uri.withAppendedPath(
+                ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+                Uri.encode(phone))
+            val contactIds = mutableSetOf<Long>()
+            contentResolver.query(
+                phoneUri,
+                arrayOf(ContactsContract.PhoneLookup._ID),
+                null, null, null
+            )?.use { c ->
+                while (c.moveToNext()) contactIds.add(c.getLong(0))
+            }
+            if (contactIds.isEmpty()) return null
+
+            // Step 2: for those contacts, find the WhatsApp video-call row.
+            val placeholders = contactIds.joinToString(",") { "?" }
+            val mimePlaceholders = mimeTypes.joinToString(",") { "?" }
+            val selection = "${ContactsContract.Data.CONTACT_ID} IN ($placeholders)" +
+                " AND ${ContactsContract.Data.MIMETYPE} IN ($mimePlaceholders)"
+            val args = (contactIds.map { it.toString() } + mimeTypes).toTypedArray()
+            contentResolver.query(
+                ContactsContract.Data.CONTENT_URI,
+                arrayOf(ContactsContract.Data._ID),
+                selection, args, null
+            )?.use { c ->
+                if (c.moveToFirst()) return c.getLong(0)
+            }
+            null
+        } catch (_: Exception) { null }
+    }
+
+    // ---- Cheerful decorative banner (custom drawing) ----
+    private fun buildDecorBanner(): View {
+        return object : View(this) {
+            private val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            override fun onDraw(c: android.graphics.Canvas) {
+                super.onDraw(c)
+                val w = width.toFloat()
+                val h = height.toFloat()
+                if (w <= 0 || h <= 0) return
+
+                // Sun (right side)
+                val sunCx = w * 0.85f
+                val sunCy = h * 0.55f
+                val sunR  = h * 0.32f
+                // rays
+                p.color = 0xFFFFC947.toInt()
+                p.strokeWidth = dp(3).toFloat()
+                p.strokeCap = android.graphics.Paint.Cap.ROUND
+                for (i in 0 until 12) {
+                    val ang = Math.toRadians(i * 30.0)
+                    val sx = sunCx + Math.cos(ang).toFloat() * sunR * 1.15f
+                    val sy = sunCy + Math.sin(ang).toFloat() * sunR * 1.15f
+                    val ex = sunCx + Math.cos(ang).toFloat() * sunR * 1.55f
+                    val ey = sunCy + Math.sin(ang).toFloat() * sunR * 1.55f
+                    c.drawLine(sx, sy, ex, ey, p)
+                }
+                // sun body
+                p.style = android.graphics.Paint.Style.FILL
+                p.color = 0xFFFFD54F.toInt()
+                c.drawCircle(sunCx, sunCy, sunR, p)
+                // smile
+                p.color = 0xFF7A4A00.toInt()
+                p.style = android.graphics.Paint.Style.STROKE
+                p.strokeWidth = dp(2.5f.toInt()).toFloat().coerceAtLeast(dp(2).toFloat())
+                val sm = android.graphics.RectF(
+                    sunCx - sunR*0.45f, sunCy - sunR*0.15f,
+                    sunCx + sunR*0.45f, sunCy + sunR*0.55f)
+                c.drawArc(sm, 20f, 140f, false, p)
+                // eyes
+                p.style = android.graphics.Paint.Style.FILL
+                c.drawCircle(sunCx - sunR*0.28f, sunCy - sunR*0.2f, dp(3).toFloat(), p)
+                c.drawCircle(sunCx + sunR*0.28f, sunCy - sunR*0.2f, dp(3).toFloat(), p)
+
+                // Clouds (left side)
+                p.color = 0xFFFFFFFF.toInt()
+                val cloudY = h * 0.4f
+                drawCloud(c, w * 0.18f, cloudY, h * 0.22f)
+                drawCloud(c, w * 0.42f, h * 0.7f, h * 0.16f)
+
+                // Flowers row at the very bottom
+                val fy = h - dp(10).toFloat()
+                val colors = intArrayOf(
+                    0xFFFF6B9D.toInt(), 0xFFFFD93D.toInt(),
+                    0xFFA78BFA.toInt(), 0xFF6EE7B7.toInt(),
+                    0xFFFB923C.toInt(), 0xFFEF4444.toInt()
+                )
+                val step = w / (colors.size + 1)
+                for (i in colors.indices) {
+                    drawFlower(c, step * (i + 1), fy, dp(6).toFloat(), colors[i])
+                }
+            }
+            private fun drawCloud(c: android.graphics.Canvas, cx: Float, cy: Float, r: Float) {
+                c.drawCircle(cx, cy, r * 0.7f, p)
+                c.drawCircle(cx - r*0.6f, cy + r*0.1f, r * 0.55f, p)
+                c.drawCircle(cx + r*0.6f, cy + r*0.1f, r * 0.55f, p)
+                c.drawCircle(cx - r*0.2f, cy - r*0.3f, r * 0.5f, p)
+                c.drawCircle(cx + r*0.25f, cy - r*0.25f, r * 0.5f, p)
+            }
+            private fun drawFlower(c: android.graphics.Canvas, cx: Float, cy: Float, r: Float, col: Int) {
+                p.color = col
+                for (i in 0 until 6) {
+                    val ang = Math.toRadians(i * 60.0)
+                    val px = cx + Math.cos(ang).toFloat() * r
+                    val py = cy + Math.sin(ang).toFloat() * r
+                    c.drawCircle(px, py, r * 0.7f, p)
+                }
+                p.color = 0xFFFFEB3B.toInt()
+                c.drawCircle(cx, cy, r * 0.5f, p)
+            }
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(MATCH, dp(90))
+        }
+    }
+
+    private fun darken(color: Int, factor: Float): Int {
+        val a = (color ushr 24) and 0xFF
+        val r = ((color ushr 16) and 0xFF) * factor
+        val g = ((color ushr 8)  and 0xFF) * factor
+        val b = ( color         and 0xFF) * factor
+        return (a shl 24) or (r.toInt().coerceIn(0,255) shl 16) or
+               (g.toInt().coerceIn(0,255) shl 8) or b.toInt().coerceIn(0,255)
+    }
+
+    private fun makeAppTile(pkg: String, holdMs: Long, tintColor: Int = 0xFFFFFFFF.toInt()): View {
         val pm = packageManager
         val appInfo = try { pm.getApplicationInfo(pkg, 0) } catch (_: Exception) { null }
         val label = try { pm.getApplicationLabel(appInfo!!).toString() } catch (_: Exception) {
@@ -399,38 +777,50 @@ class LauncherActivity : AppCompatActivity() {
         val cell = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(8), dp(16), dp(8), dp(16))
-            val bg = GradientDrawable().apply {
-                setColor(CARD_WHITE)
-                cornerRadius = dp(20).toFloat()
-                setStroke(dp(1), BAR_BORDER)
+            setPadding(dp(8), dp(18), dp(8), dp(18))
+            val darker = darken(tintColor, 0.8f)
+            val bg = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(tintColor, darker)
+            ).apply {
+                cornerRadius = dp(24).toFloat()
             }
             background = bg
-            elevation = dp(4).toFloat()
+            elevation = dp(6).toFloat()
             val spec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
             layoutParams = GridLayout.LayoutParams(spec, spec).apply {
                 width = 0; height = WRAP
-                setMargins(dp(6), dp(6), dp(6), dp(6))
+                setMargins(dp(8), dp(8), dp(8), dp(8))
             }
         }
 
-        // App icon
-        val iv = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(64), dp(64)).apply {
+        // Icon on white rounded plate for nice pop
+        val iconPlate = FrameLayout(this).apply {
+            val bg = GradientDrawable().apply {
+                setColor(0xFFFFFFFF.toInt())
+                shape = GradientDrawable.OVAL
+            }
+            background = bg
+            elevation = dp(2).toFloat()
+            layoutParams = LinearLayout.LayoutParams(dp(76), dp(76)).apply {
                 gravity = Gravity.CENTER
                 bottomMargin = dp(8)
             }
         }
-        if (icon != null) {
-            iv.setImageDrawable(icon)
+        val iv = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(dp(54), dp(54)).apply {
+                gravity = Gravity.CENTER
+            }
         }
-        cell.addView(iv)
+        if (icon != null) iv.setImageDrawable(icon)
+        iconPlate.addView(iv)
+        cell.addView(iconPlate)
 
-        // App label
+        // App label — white on color tile
         cell.addView(TextView(this).apply {
             text = label
-            textSize = 16f
-            setTextColor(TEXT_DARK)
+            textSize = 17f
+            setTextColor(0xFFFFFFFF.toInt())
             gravity = Gravity.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             maxLines = 2
@@ -496,7 +886,11 @@ class LauncherActivity : AppCompatActivity() {
             c.get(Calendar.HOUR_OF_DAY),
             c.get(Calendar.MINUTE))
         val dow = c.get(Calendar.DAY_OF_WEEK) - 1  // 0=Sunday
-        tvDate.text = "יום ${hebrewDays[dow]}"
+        val day = c.get(Calendar.DAY_OF_MONTH)
+        val month = hebrewMonths[c.get(Calendar.MONTH)]
+        val year = c.get(Calendar.YEAR)
+        tvDate.text = "יום ${hebrewDays[dow]}  ·  $day ב$month $year"
+        if (::tvGreeting.isInitialized) tvGreeting.text = timeOfDayGreeting()
     }
 
     private fun startClockTick() {
