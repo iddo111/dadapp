@@ -107,6 +107,11 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     // ---- Blue light filter ----
+    // IMPORTANT: touch pass-through is non-trivial here. The overlay sits in
+    // decorView above all tiles; on Samsung One UI an elevated opaque view
+    // can swallow touches even with isClickable=false (the RenderNode outline
+    // becomes a hit region). We explicitly consume nothing via an empty
+    // touch-listener that returns false, and drop the extreme elevation.
     private fun applyBlueLightFilter() {
         val strength = prefs.getInt(GuardianApp.KEY_BLUE_LIGHT, GuardianApp.DEFAULT_BLUE_LIGHT)
         if (strength <= 0) {
@@ -122,11 +127,21 @@ class LauncherActivity : AppCompatActivity() {
         }
         // Warm orange overlay
         val alpha = (strength * 2.55f).toInt().coerceIn(0, 180)
-        blueLightOverlay?.setBackgroundColor(Color.argb(alpha, 255, 160, 30))
-        blueLightOverlay?.visibility = View.VISIBLE
-        blueLightOverlay?.isClickable = false
-        blueLightOverlay?.isFocusable = false
-        blueLightOverlay?.elevation = 1000f
+        blueLightOverlay?.apply {
+            setBackgroundColor(Color.argb(alpha, 255, 160, 30))
+            visibility = View.VISIBLE
+            isClickable = false
+            isFocusable = false
+            isLongClickable = false
+            // Do NOT raise elevation — forces Samsung's touch dispatcher to
+            // pick the overlay as a hit-target even with isClickable=false.
+            elevation = 0f
+            // Explicitly return false from touch dispatch so every DOWN/MOVE
+            // falls through to tiles underneath.
+            setOnTouchListener { _, _ -> false }
+            // Keep screen-readers from catching this decorative layer.
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
     }
 
     // ---- Permissions ----

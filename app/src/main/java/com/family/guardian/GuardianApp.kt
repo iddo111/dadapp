@@ -24,7 +24,10 @@ class GuardianApp : Application() {
         // Important Contact, then the SOS number.
         const val KEY_FAMILY_CALL_PHONE = "family_call_phone"
         const val DEFAULT_PIN = "1234"
-        const val DEFAULT_HOLD_MS = 800L
+        // 150 ms is fast enough to feel instant to Dad yet still debounces
+        // the accidental-brush taps the touch guard is meant to catch.
+        // Previous 800 ms default felt like the app was unresponsive.
+        const val DEFAULT_HOLD_MS = 150L
         const val DEFAULT_BLUE_LIGHT = 40
     }
     override fun onCreate() {
