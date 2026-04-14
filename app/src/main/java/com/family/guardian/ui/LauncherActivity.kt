@@ -340,8 +340,10 @@ class LauncherActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(dp(110), dp(88)).apply {
                 marginEnd = dp(10)
             }
-            setOnClickListener { toggleFlashlight() }
         }
+        // Short 250 ms hold so a pocket-brush won't fire it, but a
+        // normal press still feels snappy. See attachHoldListener doc.
+        attachHoldListener(btnFlash, 250L) { toggleFlashlight() }
         bottom.addView(btnFlash)
 
         // SOS button - bold red gradient, larger, attention-grabbing
@@ -364,9 +366,12 @@ class LauncherActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, dp(88), 1f).apply {
                 marginEnd = dp(10)
             }
-            setOnClickListener {
-                startActivity(Intent(this@LauncherActivity, SosActivity::class.java))
-            }
+        }
+        // SOS also gets the 250 ms hold so a lap-bump doesn't accidentally
+        // trigger an emergency call. SOS itself then has its OWN 3 s
+        // countdown with cancel button inside SosActivity, so two gates.
+        attachHoldListener(sosBtn, 250L) {
+            startActivity(Intent(this@LauncherActivity, SosActivity::class.java))
         }
         bottom.addView(sosBtn)
         // Subtle pulse animation to draw eye to SOS without being annoying
@@ -841,29 +846,58 @@ class LauncherActivity : AppCompatActivity() {
             maxLines = 2
         })
 
-        // Touch guard
-        var holdRunnable: Runnable? = null
+        // Instant-tap launch + visual press feedback. Old behavior required
+        // the user to HOLD the finger ≥ holdMs or it would cancel — a quick
+        // tap produced no result, which is what "dad app lost its touch
+        // sensitivity" really meant. Now any tap triggers launch, while the
+        // onTouch listener only provides scale/alpha feedback and forwards
+        // the event (returns false so the click dispatcher still fires).
         cell.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    v.alpha = 0.6f
-                    v.scaleX = 0.95f; v.scaleY = 0.95f
-                    holdRunnable = Runnable {
+                    v.alpha = 0.6f; v.scaleX = 0.95f; v.scaleY = 0.95f
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.alpha = 1f; v.scaleX = 1f; v.scaleY = 1f
+                }
+            }
+            false
+        }
+        cell.setOnClickListener {
+            v -> v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            launchApp(pkg)
+        }
+        return cell
+    }
+
+    /**
+     * Attach a short hold-to-fire touch listener. Used for SOS and
+     * flashlight: still responsive to a deliberate press, but a mere brush
+     * won't trigger. [holdMs] around 250 is a good sweet spot — feels snappy
+     * yet filters accidental contact.
+     */
+    private fun attachHoldListener(view: View, holdMs: Long, onFire: () -> Unit) {
+        var fireRunnable: Runnable? = null
+        view.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    v.alpha = 0.75f; v.scaleX = 0.96f; v.scaleY = 0.96f
+                    fireRunnable = Runnable {
                         v.alpha = 1f; v.scaleX = 1f; v.scaleY = 1f
-                        launchApp(pkg)
+                        v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        onFire()
                     }
-                    handler.postDelayed(holdRunnable!!, holdMs)
+                    handler.postDelayed(fireRunnable!!, holdMs)
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    holdRunnable?.let { handler.removeCallbacks(it) }
+                    fireRunnable?.let { handler.removeCallbacks(it) }
                     v.alpha = 1f; v.scaleX = 1f; v.scaleY = 1f
                     true
                 }
                 else -> false
             }
         }
-        return cell
     }
 
     // ---- Flashlight (rear) ----
