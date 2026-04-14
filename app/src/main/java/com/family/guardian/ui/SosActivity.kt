@@ -135,63 +135,56 @@ class SosActivity : AppCompatActivity() {
         btnCancel.isEnabled = false
         tvStatus.visibility = View.VISIBLE
 
-        // 1. Capture photos (best effort)
-        tvStatus.text = "מצלם..."
+        // 1. CALL FIRST - most important, do it immediately
+        tvStatus.text = "מתקשר..."
+        val firstNumber = contacts.first().second
+        makeCall(firstNumber)
+
+        // 2. Send SMS to ALL contacts in background
         Thread {
-            var rearFile: java.io.File? = null
-            var frontFile: java.io.File? = null
+            for ((name, number) in contacts) {
+                try {
+                    val sms = SmsManager.getDefault()
+                    val msg = "SOS! " +
+                        "עזרה נדרשת. " +
+                        "הודעה אוטומטית."
+                    sms.sendTextMessage(number, null, msg, null, null)
+                } catch (e: Exception) {
+                    android.util.Log.e("SOS", "SMS failed to $number: ${e.message}")
+                }
+            }
+
+            // 3. Capture photos (best effort, after call started)
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
                 try {
                     val helper = CameraHelper(this)
-                    rearFile = helper.capturePhoto(false)
-                    frontFile = helper.capturePhoto(true)
+                    helper.capturePhoto(false)
+                    helper.capturePhoto(true)
                 } catch (e: Exception) {
                     android.util.Log.e("SOS", "Camera capture failed: ${e.message}")
                 }
-            }
-
-            runOnUiThread {
-                // 2. Send SMS to ALL contacts
-                tvStatus.text = "שולח הודעות..."
-                for ((name, number) in contacts) {
-                    try {
-                        val sms = SmsManager.getDefault()
-                        val msg = "SOS! " +
-                            "עזרה נדרשת. " +
-                            "הודעה אוטומטית."
-                        sms.sendTextMessage(number, null, msg, null, null)
-                    } catch (e: Exception) {
-                        android.util.Log.e("SOS", "SMS failed to $number: ${e.message}")
-                    }
-                }
-
-                // 3. Call the FIRST contact (can only call one at a time)
-                tvStatus.text = "מתקשר..."
-                val firstNumber = contacts.first().second
-                makeCall(firstNumber)
             }
         }.start()
     }
 
     private fun makeCall(number: String) {
+        val cleanNumber = number.replace("[^0-9+]".toRegex(), "")
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
             == PackageManager.PERMISSION_GRANTED) {
             try {
-                val callIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number")).apply {
+                val callIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$cleanNumber")).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 startActivity(callIntent)
             } catch (e: Exception) {
                 android.util.Log.e("SOS", "Call failed: ${e.message}")
-                // Fallback to dial
-                startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
+                startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$cleanNumber")))
             }
         } else {
-            // Permission denied -- fall back to dial (user must press call)
-            startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
+            startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$cleanNumber")))
         }
-        finish()
+        // DON'T finish() - let the call screen take over naturally
     }
 
     override fun onDestroy() {
